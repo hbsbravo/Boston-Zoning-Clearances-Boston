@@ -6,15 +6,20 @@ output: html_document
 ---
 
 
+```{r include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+setwd("F:\\R Work\\Big Data For Cities")
 
 
-##You will need to merge this file(Tracts to NSA) with the tracts file that you want and the other file with NSAs to the zonings file.
+#We will start by uploading data
 
-##You can apply aggregate(variable of interest~NSA_NAME, data=tracts, FUN) to create aggregated demographic measures (say, mean medincome of the region).
+##We will need to merge this file(Tracts to NSA) with the tracts file that you want and the other file with NSAs to the zonings file.
 
-##You can do something similar with aggregate(variable of interest~NSA_NAME, data=zonings, FUN) to create aggregated zoning measures.
+##We can apply aggregate(variable of interest~NSA_NAME, data=tracts, FUN) to create aggregated demographic measures (say, mean medincome of the region).
 
-'''{r}
+##we can do something similar with aggregate(variable of interest~NSA_NAME, data=zonings, FUN) to create aggregated zoning measures.
+
 
 Censustracks<-read.csv("F:/R Work/Big Data For Cities/Census Tracts/Census_Tracts.csv")
 
@@ -38,411 +43,10 @@ ZoningClearancesFinal<-read.csv('F:\\R Work\\Big Data For Cities\\Zoning Data\\Z
 
 options(scipen = 999)
 
-'''
+```
 
-#Checking and identifying required manifest variables
 
-'''{r}
-
-options(scipen = 999)
-
-View(ZoningClearancesFinal[90:100])
-View(ZoningClearancesFinal[13:18])
-View(ZoningClearancesFinal[78:88])
-View(ZoningClearancesFinal[71:77])
-View(ZoningClearancesFinal[19:29])
-View(ZoningClearancesFinal[52:56])
-
-'''
-
-#Creating and calculating the subindex variables
-
-'''{r}
-
-ZoningClearancesFinal$Elderly_Healthcare_Subindex<-apply(ZoningClearancesFinal[52:56]=='A',1,mean)
-
-ZoningClearancesFinal$Elderly_Culture_Subindex<-apply(ZoningClearancesFinal[19:29]=='A',1,mean)
-
-ZoningClearancesFinal$Elderly_Openspace_Subindex<-apply(ZoningClearancesFinal[71:77]=='A',1,mean)
-
-ZoningClearancesFinal$Elderly_Publicservice_Subindex<-apply(ZoningClearancesFinal[78:88]=='A',1,mean)
-
-ZoningClearancesFinal$Elderly_Community_Subindex<-apply(ZoningClearancesFinal[13:18]=='A',1,mean)
-
-ZoningClearancesFinal$Elderly_Residential_Subindex<-apply(ZoningClearancesFinal[90:100]=='A',1,mean)
-
-
-'''
-
-#Aggregated the Sub-Index Variables by District 
-
-'''{r}
-
-DistrictHealthAgg<-aggregate(Elderly_Healthcare_Subindex~district,data=ZoningClearancesFinal,mean)
-View(DistrictHealthAgg)
-
-DistrictCultureAgg<-aggregate(Elderly_Culture_Subindex~district,data=ZoningClearancesFinal,mean)
-View(DistrictCultureAgg)
-
-DistrictOpenAgg<-aggregate(Elderly_Openspace_Subindex~district,data=ZoningClearancesFinal,mean)
-View(DistrictOpenAgg)
-
-DistrictPubAgg<-aggregate(Elderly_Publicservice_Subindex~district,data=ZoningClearancesFinal,mean)
-View(DistrictPubAgg)
-
-DistrictCommAgg<-aggregate(Elderly_Community_Subindex~district,data=ZoningClearancesFinal,mean)
-View(DistrictCommAgg)
-
-DistrictResAgg<-aggregate(Elderly_Residential_Subindex~district,data=ZoningClearancesFinal,mean)
-View(DistrictResAgg)
-
-'''
-
-#Created a separate dataframe for the Elderly Livability Index
-
-'''{r}
-
-Elderly_Livability_Index<-data.frame(aggregate(cbind(Elderly_Healthcare_Subindex,Elderly_Community_Subindex,Elderly_Publicservice_Subindex,Elderly_Openspace_Subindex,Elderly_Culture_Subindex,Elderly_Residential_Subindex)~district,ZoningClearancesFinal,mean))
-
-
-View(Elderly_Livability_Index)
-
-'''
-
-#Created Total ,and Weighted Index Score Variables
-
-'''{r}
-Elderly_Livability_Index$Total_Index_Score<-rowSums(Elderly_Livability_Index[,c(2:7)])
-
-Elderly_Livability_Index$Total_Weighted_Score<-(Elderly_Livability_Index$Elderly_Healthcare_Subindex*1)+(Elderly_Livability_Index$Elderly_Community_Subindex*0.8)+(Elderly_Livability_Index$Elderly_Publicservice_Subindex*0.6)+(Elderly_Livability_Index$Elderly_Openspace_Subindex*0.4)+(Elderly_Livability_Index$Elderly_Culture_Subindex*0.2)+(Elderly_Livability_Index$Elderly_Residential_Subindex*0.1)
-
-View(Elderly_Livability_Index)
-
-'''
-
-#Merging Zoning Clearances Final & ZoningNSAID
-
-'''{r}
-
-ZoningNSAMerge<-merge(ZoningClearancesFinal,ZoningNSAID,by='cartodb_id')
-names(ZoningNSAMerge)
-
-'''
-
-#Creating Aggregations between Sub-Indexes and NSA Name
-
-'''{r}
-
-AggHealthNSA<-aggregate(Elderly_Healthcare_Subindex~NSA_NAME,data=ZoningNSAMerge,mean)
-AggResNSA<-aggregate(Elderly_Residential_Subindex~NSA_NAME,data=ZoningNSAMerge,mean)
-AggPubNSA<-aggregate(Elderly_Publicservice_Subindex~NSA_NAME,data=ZoningNSAMerge,mean)
-AggComNSA<-aggregate(Elderly_Community_Subindex~NSA_NAME,data=ZoningNSAMerge,mean)
-AggOpenNSA<-aggregate(Elderly_Openspace_Subindex~NSA_NAME,data=ZoningNSAMerge,mean)
-AggCulNSA<-aggregate(Elderly_Culture_Subindex~NSA_NAME,data=ZoningNSAMerge,mean)
-View(AggOpenNSA)
-
-'''
-
-#Merging Census Data & ZoningNSA Key
-
-'''{r}
-
-CensusNSAMerge<-merge(ZoningNSA,Censustracks,by='CT_ID_10')
-names(CensusNSAMerge)
-
-
-CensusIndex<-merge(CensusNSAMerge,AggHealthNSA,by='NSA_NAME')
-CensusIndex<-merge(CensusNSAMerge,AggResNSA,by='NSA_NAME')
-CensusIndex<-merge(CensusNSAMerge,AggPubNSA,by='NSA_NAME')
-CensusIndex<-merge(CensusNSAMerge,AggComNSA,by="NSA_NAME")
-CensusIndex<-merge(CensusNSAMerge,AggOpenNSA,by='NSA_NAME')
-CensusIndex<-merge(CensusNSAMerge,AggCulNSA,by='NSA_NAME')
-names(CensusIndex)
-
-'''
-
-#Merging Sub-index NSA Aggregations with each other by NSA NAME 
-
-'''{r}
-
-NSAaggregations<-merge(AggCulNSA,AggOpenNSA,by='NSA_NAME')
-NSAaggregations<-merge(NSAaggregations,AggComNSA,by='NSA_NAME')
-NSAaggregations<-merge(NSAaggregations,AggPubNSA,by='NSA_NAME')
-NSAaggregations<-merge(NSAaggregations,AggResNSA,by='NSA_NAME')
-NSAaggregations<-merge(NSAaggregations,AggHealthNSA,by='NSA_NAME')
-View(NSAaggregations)
-
-CensusIndex<-merge(CensusNSAMerge,NSAaggregations,by='NSA_NAME')
-
-'''
-
-#Aggregating Important Variables with NSA names within the Census dataset
-
-'''{r}
-
-Census65Agg<-aggregate(p65older~NSA_NAME,data=CensusIndex,mean)
-CensusWhiAgg<-aggregate(propwhite~NSA_NAME,data=CensusIndex,mean)
-CensusBlkAgg<-aggregate(propblack~NSA_NAME,data=CensusIndex,mean)
-CensusAsAgg<-aggregate(propasian~NSA_NAME,data=CensusIndex,mean)
-CensusOtherRaceAgg<-aggregate(propother~NSA_NAME,data=CensusIndex,mean)
-CensusImmigAgg<-aggregate(propimmigrant~NSA_NAME,data=CensusIndex,mean)
-CensusParkAgg<-aggregate(Park~NSA_NAME,data=CensusIndex,mean)
-
-'''
-
-#Merging Aggregated Census Variables together
-
-'''{r}
-
-CensusAggMerge<-merge(Census65Agg,CensusWhiAgg,by='NSA_NAME')
-CensusAggMerge<-merge(CensusAggMerge,CensusBlkAgg,by='NSA_NAME')
-CensusAggMerge<-merge(CensusAggMerge,CensusOtherRaceAgg,by='NSA_NAME')
-CensusAggMerge<-merge(CensusAggMerge,CensusAsAgg,by='NSA_NAME')
-CensusAggMerge<-merge(CensusAggMerge,CensusImmigAgg,by='NSA_NAME')
-CensusAggMerge<-merge(CensusAggMerge,CensusParkAgg,by='NSA_NAME')
-names(CensusAggMerge)
-
-'''
-
-
-#Merging CensusAggMerge(Aggregated Census Variables) with NSA Aggregations(Sub Index NSA Aggregations)
-
-'''{r}
-CensusZoningNSA<-merge(CensusAggMerge,NSAaggregations,by='NSA_NAME')
-View(CensusZoningNSA)
-names(CensusZoningNSA)
-
-'''
-
-
-#Now lets create some maps
-
-'''{r}
-
-install.packages('rgeos', type='source')
-install.packages('rgdal', type='source')
-install.packages("gpclib", type="source")
-install.packages('maptools', type='source')
-install.packages('dplyr', type='source')
-install.packages("extrafont", type="source")
-install.packages("ggplot2", type="source")
-
-
-library(dplyr)
-library(extrafont)
-library(rgdal)
-library(maptools)
-library(ggplot2)
-library(rgeos)
-library(maptools)
-
-
-tracts.shp <- readOGR(dsn = 'F://R Work//Big Data For Cities//Census Tracts//Tracts_Boston_2015_BARI//Tracts_Boston BARI.shp', 'Tracts_Boston BARI')
-
-
-tracts.shp <- merge(tracts.shp, CensusIndex, by = 'CT_ID_10', all.x = TRUE, sort = FALSE)
-
-tracts.df <- fortify(tracts.shp, region = "CT_ID_10")
-
-tracts.df <- merge(tracts.df, tracts.shp@data, by.x = 'id', by.y = 'CT_ID_10', all.x = TRUE)
-
-my.map.theme <- theme(text = element_text(family = "Futura Bk BT"),
-                      plot.title = element_text(size = 30),
-                      axis.line = element_blank(),
-                      axis.title.x = element_blank(),
-                      axis.title.y = element_blank(),
-                      axis.text.x = element_blank(),
-                      axis.text.y = element_blank(),
-                      #legend.title = element_text(size = 16, face = "bold"),
-                      legend.title = element_text(size = 14),
-                      legend.text = element_text(size = 12),
-                      panel.grid.major = element_blank (), # remove major grid
-                      panel.grid.minor = element_blank (),  # remove minor grid
-                      axis.text = element_blank (), 
-                      axis.title = element_blank (),
-                      axis.ticks = element_blank (),
-                      strip.text = element_text(size = 20))
-
-'''
-
-
-#Get Neighborhood names and locations
-
-'''{r}
-
-NBs.df <- fortify(tracts.shp, region = "BRA_PD.x")
-NBcentroids <-aggregate(cbind(long, lat) ~ id, data = NBs.df, FUN = function(x) mean(range(x)))
-
-'''
-
-#Lets try some shorter names 
-
-'''{r}
-NBcentroids$id <- sub("Fenway/Kenmore", "Fenway", NBcentroids$id)
-NBcentroids$id <- sub("Back Bay/Beacon Hill", "Back Bay", NBcentroids$id)
-
-'''
-
-#For improved color scales
-
-'''{r}
-
-library(scales)
-
-'''
-
-#For Public Services
-
-'''{r}
-
-ggplot(data=tracts.df, aes(x=long, y=lat, group=group, fill = Elderly_Publicservice_Subindex )) +
-  geom_polygon() +
-  scale_fill_gradient2(high = muted("darkgoldenrod1")) +
-  geom_label(data=NBcentroids, 
-            aes(long, lat, label = id, group = NULL, fill=NULL), size=4) +
-  labs(title = "Public Services Subindex", fill = "Value") +
-  theme_minimal() +  my.map.theme + coord_map()
-
-'''
-
-#For Open Space
-
-'''{r}
-
-ggplot(data=tracts.df, aes(x=long, y=lat, group=group, fill = Elderly_Openspace_Subindex )) +
-  geom_polygon() +
-  scale_fill_gradient2(high = muted("darkgreen")) +
-  geom_label(data=NBcentroids, 
-             aes(long, lat, label = id, group = NULL, fill=NULL), size=4) +
-  labs(title = "Open Space Subindex", fill = "Value") +
-  theme_minimal() +  my.map.theme + coord_map()
-
-'''
-
-#For Health Care
-
-'''{r}
-
-ggplot(data=tracts.df, aes(x=long, y=lat, group=group, fill = Elderly_Healthcare_Subindex )) +
-  geom_polygon() +
-  scale_fill_gradient2(high = muted("darkmagenta")) +
-  geom_label(data=NBcentroids, 
-             aes(long, lat, label = id, group = NULL, fill=NULL), size=4) +
-  labs(title = "Healthcare Subindex", fill = "Value") +
-  theme_minimal() +  my.map.theme + coord_map()
-
-'''
-
-#For Cultural Amenities
-
-'''{r}
-
-ggplot(data=tracts.df, aes(x=long, y=lat, group=group, fill = Elderly_Culture_Subindex )) +
-  geom_polygon() +
-  scale_fill_gradient2(high = muted("darkred")) +
-  geom_label(data=NBcentroids, 
-             aes(long, lat, label = id, group = NULL, fill=NULL), size=4) +
-  labs(title = "Cultural Amenities Subindex", fill = "Value") +
-  theme_minimal() +  my.map.theme + coord_map()
-
-'''
-
-#For Community Facilities 
-
-'''{r}
-
-ggplot(data=tracts.df, aes(x=long, y=lat, group=group, fill = Elderly_Community_Subindex )) +
-  geom_polygon() +
-  scale_fill_gradient2(high = muted("darkblue")) +
-  geom_label(data=NBcentroids, 
-             aes(long, lat, label = id, group = NULL, fill=NULL), size=4) +
-  labs(title = "Community Facilities Subindex", fill = "Value") +
-  theme_minimal() +  my.map.theme + coord_map()
-
-'''
-
-#For Residential Amenities
-
-'''{r}
-
-ggplot(data=tracts.df, aes(x=long, y=lat, group=group, fill = Elderly_Residential_Subindex )) +
-  geom_polygon() +
-  scale_fill_gradient2(high = muted("cornsilk4")) +
-  geom_label(data=NBcentroids, 
-             aes(long, lat, label = id, group = NULL, fill=NULL), size=4) +
-  labs(title = "Residential Amenities Subindex", fill = "Value") +
-  theme_minimal() +  my.map.theme + coord_map()
-
-'''
-
-
-#Merging the relevant files
-
-'''{r}
-
-Analysisfile<-merge(merge1,merge2,by='NSA_NAME')
-
-View(Analysisfile)
-
-'''
-Lets do a Single-sample t-test
-According to the US Census 13% of the population of the US is 65 and over
-
-#Lets try to answer the question:Is the percentage of the population over 65 years of age in Boston higher than the national average
-
-
-'''{r}
-
-t.test(Censustracks$p65older, mu=0.13)
-names(Analysisfile)
-
-
-
-#Lets do a two-sample t-test
-And try to answer the question:Is the percentage of the population older than 65 higher with greater weighted index scores
-
-'''{r}
-t.test(Analysisfile$p65older,Analysisfile$Weighted_Score, data=Analysisfile)
-
-'''
-
-#Lets do a ANOVA test
-
-'''{r}
-
-anova<-aov(Analysisfile$p65older~Analysisfile$Weighted_Score, data=Analysisfile)
-anova<-aov(Analysisfile$p65older~Analysisfile$district, data=Analysisfile)
-
-'''
-
-#Lets compare means
-
-'''{r}
-
-TukeyHSD(anova)
-
-'''
-
-#Lets visualize group differences
-
-'''{r}
-
-require(reshape2)
-require(ggplot2)
-
-names(Analysisfile)
-melted<-melt(Analysisfile[c(235,183)],id.vars=c("DISTRICT"))
-
-
-View(melted)
-melted$value
-means<-aggregate(value~DISTRICT,data=melted,sum)
-names(means)[2]<-"mean"
-View(means)
-
-'''
-
-Executive Summary
+#Executive Summary
 Eco-metrics deals with the measurements of the characteristics of the physical, and social ecology of a neighborhood. In order to learn more about these neighborhoods through eco-metrics, we develop models utilizing latent or conceptual constructs. However, to make inferences about such phenomenon we need to measure observable or manifest variables that drive the development of these conceptual models. 
 In this project a similar approach was replicated in the development of an elderly livability index. Categorized data pertaining to relevant factors within the Zoning Clearances data set was converted to numerical integers, in order to obtain a zoning score or index by category. The factors under consideration were identified after perusing a research paper published by the American Association of Retired Persons (AARP) titled, "What Is Livable? Community Preferences of Older Adults".
 These indexes were later compared, and aggregated to districts and Neighborhood Statistical Area's with the hope of creating a set of values that would indicate desirability of a neighborhood for the elderly. Conversely this index could also highlight the volume, and variability of the amenities that would be required to design an ideal locality for this target demographic. These questions are highly pertinent to the City of Boston, given the growing population of the demographic group over 65 years of age which according to the 2010 US Census.
@@ -502,4 +106,411 @@ The absence of open space, along with cultural, and community facilities in the 
 The index scores have not really shown whether zoning patterns and public amenities correlate with the desire to live in a neighborhood. Therefore we conclude that our target demographic group is self sorting itself into neighborhoods based on various extraneous variables.
 The AARP should consequently rehash its approach and look at the optimum mix between the residential amenities, and the other amenities that the elderly would find attractive, and not just focus on individual amenities. In that manner we would be better able to chart out a livability index that would suit the needs and requirements of the elderly population in the city of Boston.
 Moreover, the City of Boston can capitalize on the open availability of the zoning clearances dataset, and streamline the process through which individuals and businesses can petition to change zoning clearances. In this way, the data would aid the denizens of the city to partake in the local decision making process.
+
+
+
+
+#Checking and identifying required manifest variables
+
+```{r}
+
+options(scipen = 999)
+
+View(ZoningClearancesFinal[90:100])
+View(ZoningClearancesFinal[13:18])
+View(ZoningClearancesFinal[78:88])
+View(ZoningClearancesFinal[71:77])
+View(ZoningClearancesFinal[19:29])
+View(ZoningClearancesFinal[52:56])
+
+```
+
+#Creating and calculating the subindex variables
+
+```{r}
+
+ZoningClearancesFinal$Elderly_Healthcare_Subindex<-apply(ZoningClearancesFinal[52:56]=='A',1,mean)
+
+ZoningClearancesFinal$Elderly_Culture_Subindex<-apply(ZoningClearancesFinal[19:29]=='A',1,mean)
+
+ZoningClearancesFinal$Elderly_Openspace_Subindex<-apply(ZoningClearancesFinal[71:77]=='A',1,mean)
+
+ZoningClearancesFinal$Elderly_Publicservice_Subindex<-apply(ZoningClearancesFinal[78:88]=='A',1,mean)
+
+ZoningClearancesFinal$Elderly_Community_Subindex<-apply(ZoningClearancesFinal[13:18]=='A',1,mean)
+
+ZoningClearancesFinal$Elderly_Residential_Subindex<-apply(ZoningClearancesFinal[90:100]=='A',1,mean)
+
+
+```
+
+#Aggregated the Sub-Index Variables by District 
+
+```{r}
+
+DistrictHealthAgg<-aggregate(Elderly_Healthcare_Subindex~district,data=ZoningClearancesFinal,mean)
+View(DistrictHealthAgg)
+
+DistrictCultureAgg<-aggregate(Elderly_Culture_Subindex~district,data=ZoningClearancesFinal,mean)
+View(DistrictCultureAgg)
+
+DistrictOpenAgg<-aggregate(Elderly_Openspace_Subindex~district,data=ZoningClearancesFinal,mean)
+View(DistrictOpenAgg)
+
+DistrictPubAgg<-aggregate(Elderly_Publicservice_Subindex~district,data=ZoningClearancesFinal,mean)
+View(DistrictPubAgg)
+
+DistrictCommAgg<-aggregate(Elderly_Community_Subindex~district,data=ZoningClearancesFinal,mean)
+View(DistrictCommAgg)
+
+DistrictResAgg<-aggregate(Elderly_Residential_Subindex~district,data=ZoningClearancesFinal,mean)
+View(DistrictResAgg)
+
+```
+
+#Created a separate dataframe for the Elderly Livability Index
+
+```{r}
+
+Elderly_Livability_Index<-data.frame(aggregate(cbind(Elderly_Healthcare_Subindex,Elderly_Community_Subindex,Elderly_Publicservice_Subindex,Elderly_Openspace_Subindex,Elderly_Culture_Subindex,Elderly_Residential_Subindex)~district,ZoningClearancesFinal,mean))
+
+
+View(Elderly_Livability_Index)
+
+```
+
+#Created Total ,and Weighted Index Score Variables
+
+```{r}
+Elderly_Livability_Index$Total_Index_Score<-rowSums(Elderly_Livability_Index[,c(2:7)])
+
+Elderly_Livability_Index$Total_Weighted_Score<-(Elderly_Livability_Index$Elderly_Healthcare_Subindex*1)+(Elderly_Livability_Index$Elderly_Community_Subindex*0.8)+(Elderly_Livability_Index$Elderly_Publicservice_Subindex*0.6)+(Elderly_Livability_Index$Elderly_Openspace_Subindex*0.4)+(Elderly_Livability_Index$Elderly_Culture_Subindex*0.2)+(Elderly_Livability_Index$Elderly_Residential_Subindex*0.1)
+
+View(Elderly_Livability_Index)
+
+```
+
+#Merging Zoning Clearances Final & ZoningNSAID
+
+```{r}
+
+ZoningNSAMerge<-merge(ZoningClearancesFinal,ZoningNSAID,by='cartodb_id')
+names(ZoningNSAMerge)
+
+```
+
+#Creating Aggregations between Sub-Indexes and NSA Name
+
+```{r}
+
+AggHealthNSA<-aggregate(Elderly_Healthcare_Subindex~NSA_NAME,data=ZoningNSAMerge,mean)
+AggResNSA<-aggregate(Elderly_Residential_Subindex~NSA_NAME,data=ZoningNSAMerge,mean)
+AggPubNSA<-aggregate(Elderly_Publicservice_Subindex~NSA_NAME,data=ZoningNSAMerge,mean)
+AggComNSA<-aggregate(Elderly_Community_Subindex~NSA_NAME,data=ZoningNSAMerge,mean)
+AggOpenNSA<-aggregate(Elderly_Openspace_Subindex~NSA_NAME,data=ZoningNSAMerge,mean)
+AggCulNSA<-aggregate(Elderly_Culture_Subindex~NSA_NAME,data=ZoningNSAMerge,mean)
+View(AggOpenNSA)
+
+```
+
+#Merging Census Data & ZoningNSA Key
+
+```{r}
+
+CensusNSAMerge<-merge(ZoningNSA,Censustracks,by='CT_ID_10')
+names(CensusNSAMerge)
+
+
+CensusIndex<-merge(CensusNSAMerge,AggHealthNSA,by='NSA_NAME')
+CensusIndex<-merge(CensusNSAMerge,AggResNSA,by='NSA_NAME')
+CensusIndex<-merge(CensusNSAMerge,AggPubNSA,by='NSA_NAME')
+CensusIndex<-merge(CensusNSAMerge,AggComNSA,by="NSA_NAME")
+CensusIndex<-merge(CensusNSAMerge,AggOpenNSA,by='NSA_NAME')
+CensusIndex<-merge(CensusNSAMerge,AggCulNSA,by='NSA_NAME')
+names(CensusIndex)
+
+```
+
+#Merging Sub-index NSA Aggregations with each other by NSA NAME 
+
+```{r}
+
+NSAaggregations<-merge(AggCulNSA,AggOpenNSA,by='NSA_NAME')
+NSAaggregations<-merge(NSAaggregations,AggComNSA,by='NSA_NAME')
+NSAaggregations<-merge(NSAaggregations,AggPubNSA,by='NSA_NAME')
+NSAaggregations<-merge(NSAaggregations,AggResNSA,by='NSA_NAME')
+NSAaggregations<-merge(NSAaggregations,AggHealthNSA,by='NSA_NAME')
+View(NSAaggregations)
+
+CensusIndex<-merge(CensusNSAMerge,NSAaggregations,by='NSA_NAME')
+
+```
+
+#Aggregating Important Variables with NSA names within the Census dataset
+
+```{r}
+
+Census65Agg<-aggregate(p65older~NSA_NAME,data=CensusIndex,mean)
+CensusWhiAgg<-aggregate(propwhite~NSA_NAME,data=CensusIndex,mean)
+CensusBlkAgg<-aggregate(propblack~NSA_NAME,data=CensusIndex,mean)
+CensusAsAgg<-aggregate(propasian~NSA_NAME,data=CensusIndex,mean)
+CensusOtherRaceAgg<-aggregate(propother~NSA_NAME,data=CensusIndex,mean)
+CensusImmigAgg<-aggregate(propimmigrant~NSA_NAME,data=CensusIndex,mean)
+CensusParkAgg<-aggregate(Park~NSA_NAME,data=CensusIndex,mean)
+
+```
+
+#Merging Aggregated Census Variables together
+
+```{r}
+
+CensusAggMerge<-merge(Census65Agg,CensusWhiAgg,by='NSA_NAME')
+CensusAggMerge<-merge(CensusAggMerge,CensusBlkAgg,by='NSA_NAME')
+CensusAggMerge<-merge(CensusAggMerge,CensusOtherRaceAgg,by='NSA_NAME')
+CensusAggMerge<-merge(CensusAggMerge,CensusAsAgg,by='NSA_NAME')
+CensusAggMerge<-merge(CensusAggMerge,CensusImmigAgg,by='NSA_NAME')
+CensusAggMerge<-merge(CensusAggMerge,CensusParkAgg,by='NSA_NAME')
+names(CensusAggMerge)
+
+```
+
+
+#Merging CensusAggMerge(Aggregated Census Variables) with NSA Aggregations(Sub Index NSA Aggregations)
+
+```{r}
+CensusZoningNSA<-merge(CensusAggMerge,NSAaggregations,by='NSA_NAME')
+View(CensusZoningNSA)
+names(CensusZoningNSA)
+
+```
+
+
+#Now lets create some maps
+
+```{r}
+
+install.packages('rgeos', type='source')
+install.packages('rgdal', type='source')
+install.packages("gpclib", type="source")
+install.packages('maptools', type='source')
+install.packages('dplyr', type='source')
+install.packages("extrafont", type="source")
+install.packages("ggplot2", type="source")
+
+
+library(dplyr)
+library(extrafont)
+library(rgdal)
+library(maptools)
+library(ggplot2)
+library(rgeos)
+library(maptools)
+
+
+tracts.shp <- readOGR(dsn = 'F://R Work//Big Data For Cities//Census Tracts//Tracts_Boston_2015_BARI//Tracts_Boston BARI.shp', 'Tracts_Boston BARI')
+
+
+tracts.shp <- merge(tracts.shp, CensusIndex, by = 'CT_ID_10', all.x = TRUE, sort = FALSE)
+
+tracts.df <- fortify(tracts.shp, region = "CT_ID_10")
+
+tracts.df <- merge(tracts.df, tracts.shp@data, by.x = 'id', by.y = 'CT_ID_10', all.x = TRUE)
+
+my.map.theme <- theme(text = element_text(family = "Futura Bk BT"),
+                      plot.title = element_text(size = 30),
+                      axis.line = element_blank(),
+                      axis.title.x = element_blank(),
+                      axis.title.y = element_blank(),
+                      axis.text.x = element_blank(),
+                      axis.text.y = element_blank(),
+                      #legend.title = element_text(size = 16, face = "bold"),
+                      legend.title = element_text(size = 14),
+                      legend.text = element_text(size = 12),
+                      panel.grid.major = element_blank (), # remove major grid
+                      panel.grid.minor = element_blank (),  # remove minor grid
+                      axis.text = element_blank (), 
+                      axis.title = element_blank (),
+                      axis.ticks = element_blank (),
+                      strip.text = element_text(size = 20))
+
+```
+
+
+#Get Neighborhood names and locations
+
+```{r}
+
+NBs.df <- fortify(tracts.shp, region = "BRA_PD.x")
+NBcentroids <-aggregate(cbind(long, lat) ~ id, data = NBs.df, FUN = function(x) mean(range(x)))
+
+```
+
+#Lets try some shorter names 
+
+```{r}
+NBcentroids$id <- sub("Fenway/Kenmore", "Fenway", NBcentroids$id)
+NBcentroids$id <- sub("Back Bay/Beacon Hill", "Back Bay", NBcentroids$id)
+
+```
+
+#For improved color scales
+
+```{r}
+
+library(scales)
+
+```
+
+#For Public Services
+
+```{r}
+
+ggplot(data=tracts.df, aes(x=long, y=lat, group=group, fill = Elderly_Publicservice_Subindex )) +
+  geom_polygon() +
+  scale_fill_gradient2(high = muted("darkgoldenrod1")) +
+  geom_label(data=NBcentroids, 
+            aes(long, lat, label = id, group = NULL, fill=NULL), size=4) +
+  labs(title = "Public Services Subindex", fill = "Value") +
+  theme_minimal() +  my.map.theme + coord_map()
+
+```
+
+#For Open Space
+
+```{r}
+
+ggplot(data=tracts.df, aes(x=long, y=lat, group=group, fill = Elderly_Openspace_Subindex )) +
+  geom_polygon() +
+  scale_fill_gradient2(high = muted("darkgreen")) +
+  geom_label(data=NBcentroids, 
+             aes(long, lat, label = id, group = NULL, fill=NULL), size=4) +
+  labs(title = "Open Space Subindex", fill = "Value") +
+  theme_minimal() +  my.map.theme + coord_map()
+
+```
+
+#For Health Care
+
+```{r}
+
+ggplot(data=tracts.df, aes(x=long, y=lat, group=group, fill = Elderly_Healthcare_Subindex )) +
+  geom_polygon() +
+  scale_fill_gradient2(high = muted("darkmagenta")) +
+  geom_label(data=NBcentroids, 
+             aes(long, lat, label = id, group = NULL, fill=NULL), size=4) +
+  labs(title = "Healthcare Subindex", fill = "Value") +
+  theme_minimal() +  my.map.theme + coord_map()
+
+```
+
+#For Cultural Amenities
+
+```{r}
+
+ggplot(data=tracts.df, aes(x=long, y=lat, group=group, fill = Elderly_Culture_Subindex )) +
+  geom_polygon() +
+  scale_fill_gradient2(high = muted("darkred")) +
+  geom_label(data=NBcentroids, 
+             aes(long, lat, label = id, group = NULL, fill=NULL), size=4) +
+  labs(title = "Cultural Amenities Subindex", fill = "Value") +
+  theme_minimal() +  my.map.theme + coord_map()
+
+```
+
+#For Community Facilities 
+
+```{r}
+
+ggplot(data=tracts.df, aes(x=long, y=lat, group=group, fill = Elderly_Community_Subindex )) +
+  geom_polygon() +
+  scale_fill_gradient2(high = muted("darkblue")) +
+  geom_label(data=NBcentroids, 
+             aes(long, lat, label = id, group = NULL, fill=NULL), size=4) +
+  labs(title = "Community Facilities Subindex", fill = "Value") +
+  theme_minimal() +  my.map.theme + coord_map()
+
+```
+
+#For Residential Amenities
+
+```{r}
+
+ggplot(data=tracts.df, aes(x=long, y=lat, group=group, fill = Elderly_Residential_Subindex )) +
+  geom_polygon() +
+  scale_fill_gradient2(high = muted("cornsilk4")) +
+  geom_label(data=NBcentroids, 
+             aes(long, lat, label = id, group = NULL, fill=NULL), size=4) +
+  labs(title = "Residential Amenities Subindex", fill = "Value") +
+  theme_minimal() +  my.map.theme + coord_map()
+
+```
+
+
+#Merging the relevant files
+
+```{r}
+
+Analysisfile<-merge(merge1,merge2,by='NSA_NAME')
+
+View(Analysisfile)
+
+```
+Lets do a Single-sample t-test
+According to the US Census 13% of the population of the US is 65 and over
+
+#Lets try to answer the question:Is the percentage of the population over 65 years of age in Boston higher than the national average
+
+
+```{r}
+
+t.test(Censustracks$p65older, mu=0.13)
+names(Analysisfile)
+
+```
+
+#Lets do a two-sample t-test
+#And try to answer the question:Is the percentage of the population older than 65 higher with greater weighted index scores
+
+```{r}
+t.test(Analysisfile$p65older,Analysisfile$Weighted_Score, data=Analysisfile)
+
+```
+
+#Lets do a ANOVA test
+
+```{r}
+
+anova<-aov(Analysisfile$p65older~Analysisfile$Weighted_Score, data=Analysisfile)
+anova<-aov(Analysisfile$p65older~Analysisfile$district, data=Analysisfile)
+
+```
+
+#Lets compare means
+
+```{r}
+
+TukeyHSD(anova)
+
+```
+
+#Lets visualize group differences
+
+```{r}
+
+require(reshape2)
+require(ggplot2)
+
+names(Analysisfile)
+melted<-melt(Analysisfile[c(235,183)],id.vars=c("DISTRICT"))
+
+
+View(melted)
+melted$value
+means<-aggregate(value~DISTRICT,data=melted,sum)
+names(means)[2]<-"mean"
+View(means)
+
+```
+
+
 
